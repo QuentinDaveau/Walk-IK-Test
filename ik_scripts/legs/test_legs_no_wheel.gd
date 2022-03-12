@@ -63,7 +63,6 @@ func _physics_process(delta: float) -> void:
 	
 	_right_progress += delta
 	_left_progress += delta
-	print(_right_progress)
 	
 	if _right_progress >= _right_time:
 		_right_moving = false
@@ -91,6 +90,7 @@ func _physics_process(delta: float) -> void:
 	
 	
 	if _right_moving:
+		print(_right_progress / _right_time)
 		var right_progress := _feet_offset_curve.get_horizontal_progress(_right_progress / _right_time, $FeetTracker.get_speed_ratio(), 0.0)
 		
 		var right_flat := _right_starting_point
@@ -100,6 +100,7 @@ func _physics_process(delta: float) -> void:
 		var right_flat_position = right_flat.linear_interpolate(right_progress_flat, right_progress)
 		right_flat_position.y = lerp(_right_starting_point.y, _right_target_position.y, _feet_offset_curve.get_vertical_progress(_right_progress / _right_time, $FeetTracker.get_speed_ratio(), 0.0))
 		_ik_target_right.target.origin = _ik_target_right.target.origin.linear_interpolate(right_flat_position, 30.0 * delta)
+		$LeftTarget2.global_transform.origin = right_flat_position
 	
 #	if _left_moving:
 #		var left_progress := _feet_offset_curve.get_horizontal_progress(_left_progress / _left_time, $FeetTracker.get_speed_ratio(), 0.0)
