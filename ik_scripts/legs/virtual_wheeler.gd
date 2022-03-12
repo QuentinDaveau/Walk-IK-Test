@@ -10,7 +10,6 @@ const MAX_SPEED = 2.5
 const MIN_SPEED = 0.5
 const MIN_POS = 0.2
 
-
 var _previous_pos: Vector3
 var _wheel_rotation: float
 var _wheel_axis: Vector3 = Vector3.RIGHT
@@ -32,6 +31,10 @@ func _physics_process(delta: float) -> void:
 
 func get_target(side: int) -> Vector3:
 	return (global_transform.origin + Vector3.DOWN * _wheel_position + _wheel_main_target.rotated(Vector3.UP, _velocity.angle_to(Vector3.FORWARD))) * (1.0 if side == TARGET_SIDE.RIGHT else -1.0)
+
+
+
+func 
 
 
 

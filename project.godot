@@ -9,12 +9,18 @@
 config_version=4
 
 _global_script_classes=[ {
+"base": "Node",
+"class": "FeetOffsetCurve",
+"language": "GDScript",
+"path": "res://ik_scripts/legs/feet_offset_curve.gd"
+}, {
 "base": "Resource",
 "class": "IkJoint",
 "language": "GDScript",
 "path": "res://ik_scripts/ik/ik_joint.gd"
 } ]
 _global_script_class_icons={
+"FeetOffsetCurve": "",
 "IkJoint": ""
 }
 

@@ -1,10 +1,10 @@
-[gd_scene load_steps=8 format=2]
+[gd_scene load_steps=9 format=2]
 
 [ext_resource path="res://model/ybot.dae" type="PackedScene" id=1]
 [ext_resource path="res://character/character.gd" type="Script" id=2]
-[ext_resource path="res://ik_scripts/legs/test_legs_full_procedural.gd" type="Script" id=3]
-[ext_resource path="res://character/wheeler.gd" type="Script" id=4]
+[ext_resource path="res://ik_scripts/legs/test_legs_no_wheel.gd" type="Script" id=3]
 [ext_resource path="res://character/camera.gd" type="Script" id=5]
+[ext_resource path="res://ik_scripts/legs/FeetTracker.tscn" type="PackedScene" id=6]
 
 [sub_resource type="CylinderMesh" id=1]
 top_radius = 0.01
@@ -14,6 +14,12 @@ radial_segments = 8
 [sub_resource type="SphereMesh" id=2]
 radius = 0.1
 height = 0.2
+
+[sub_resource type="SphereMesh" id=3]
+radius = 0.1
+height = 0.2
+radial_segments = 16
+rings = 8
 
 [node name="Character" type="Spatial"]
 script = ExtResource( 2 )
@@ -41,17 +47,15 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
 script = ExtResource( 3 )
 _ik_system_right_path = NodePath("../Skeleton/IkLegRight")
 _ik_system_left_path = NodePath("../Skeleton/IkLegLeft")
-_right_target_path = NodePath("Wheeler/Debug/RightTarget")
-_left_target_path = NodePath("Wheeler/Debug/LeftTarget")
 
 [node name="RayCast" type="RayCast" parent="ybot/LegsIkAnimation"]
 enabled = true
 collision_mask = 15
 
 [node name="Wheeler" type="Spatial" parent="ybot/LegsIkAnimation"]
-script = ExtResource( 4 )
 
 [node name="Debug" type="Spatial" parent="ybot/LegsIkAnimation/Wheeler"]
+visible = false
 
 [node name="MeshInstance" type="MeshInstance" parent="ybot/LegsIkAnimation/Wheeler/Debug"]
 mesh = SubResource( 1 )
@@ -89,6 +93,16 @@ material/0 = null
 [node name="RayCast" type="RayCast" parent="ybot/LegsIkAnimation/Wheeler"]
 enabled = true
 collision_mask = 7
+
+[node name="FeetTracker" parent="ybot/LegsIkAnimation" instance=ExtResource( 6 )]
+
+[node name="RightTarget" type="MeshInstance" parent="ybot/LegsIkAnimation"]
+mesh = SubResource( 3 )
+material/0 = null
+
+[node name="LeftTarget" type="MeshInstance" parent="ybot/LegsIkAnimation"]
+mesh = SubResource( 3 )
+material/0 = null
 
 [node name="Camera" type="Camera" parent="."]
 transform = Transform( 0.707107, -0.187003, 0.681931, 0, 0.964396, 0.264462, -0.707107, -0.187003, 0.681931, 3.51654, 2.29462, 3.74406 )
