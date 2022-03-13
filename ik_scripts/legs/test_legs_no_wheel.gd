@@ -16,7 +16,7 @@ export(NodePath) var _wheeler_path
 onready var _ik_target_right: SkeletonIK = get_node(_ik_system_right_path)
 onready var _ik_target_left: SkeletonIK = get_node(_ik_system_left_path)
 
-onready var _wheeler: Spatial = get_node(_wheeler_path)
+#onready var _wheeler: Spatial = get_node(_wheeler_path)
 
 onready var _caster := $RayCast
 onready var _feet_track = $FeetTracker
@@ -74,45 +74,55 @@ func _physics_process(delta: float) -> void:
 		_right_starting_point = _ik_target_right.target.origin
 		_right_progress = 0.0
 		_right_target_position = $FeetTracker.get_next_stick_point()
-		_right_time = $FeetTracker.get_interpolation_time(0.0)
+		_right_time = $FeetTracker.get_interpolation_time(0.0) * 2.0
 		_right_target_position = _find_ik_position(_right_target_position)
 		$RightTarget.global_transform.origin = _right_target_position
 		_right_moving = true
-#
-#	if not _left_moving and $FeetTracker.should_unstick(_left_target_position):
-#		_left_starting_point = _ik_target_left.target.origin
-#		_left_progress = 0.0
-#		_left_target_position = $FeetTracker.get_next_stick_point()
-#		_left_time = $FeetTracker.get_interpolation_time(0.0)
-#		_left_target_position = _find_ik_position(_right_target_position)
-#		$LeftTarget.global_transform.origin = _left_target_position
-#		_left_moving = true
+
+	if not _right_moving and not _left_moving and $FeetTracker.should_unstick(_left_target_position):
+		_left_starting_point = _ik_target_left.target.origin
+		_left_progress = 0.0
+		_left_target_position = $FeetTracker.get_next_stick_point()
+		_left_time = $FeetTracker.get_interpolation_time(0.0) * 2.0
+		_left_target_position = _find_ik_position(_right_target_position)
+		$LeftTarget.global_transform.origin = _left_target_position
+		_left_moving = true
 	
 	
-	if _right_moving:
-		print(_right_progress / _right_time)
+	if _right_moving and _right_time:
 		var right_progress := _feet_offset_curve.get_horizontal_progress(_right_progress / _right_time, $FeetTracker.get_speed_ratio(), 0.0)
+		
+#		print(_feet_offset_curve.get_vertical_offset(_right_progress / _right_time, $FeetTracker.get_speed_ratio(), 0.0))
 		
 		var right_flat := _right_starting_point
 		right_flat.y = 0.0
 		var right_progress_flat := _right_target_position
 		right_progress_flat.y = 0.0
 		var right_flat_position = right_flat.linear_interpolate(right_progress_flat, right_progress)
-		right_flat_position.y = lerp(_right_starting_point.y, _right_target_position.y, _feet_offset_curve.get_vertical_progress(_right_progress / _right_time, $FeetTracker.get_speed_ratio(), 0.0))
-		_ik_target_right.target.origin = _ik_target_right.target.origin.linear_interpolate(right_flat_position, 30.0 * delta)
-		$LeftTarget2.global_transform.origin = right_flat_position
+		right_flat_position.y = lerp(_right_starting_point.y, _right_target_position.y, _right_progress / _right_time)
+		right_flat_position.y += _feet_offset_curve.get_vertical_offset(_right_progress / _right_time, $FeetTracker.get_speed_ratio(), 0.0) / 3.0
+		_ik_target_right.target.origin = _ik_target_right.target.origin.linear_interpolate(right_flat_position, 50.0 * delta)
+		$RightTarget2.global_transform.origin = right_flat_position
 	
-#	if _left_moving:
-#		var left_progress := _feet_offset_curve.get_horizontal_progress(_left_progress / _left_time, $FeetTracker.get_speed_ratio(), 0.0)
-#
-#		_ik_target_left.target.origin = _ik_target_left.target.origin.linear_interpolate(_left_world_target.origin, 30.0 * delta)
-#
+	if not _right_moving and _left_moving and _left_time:
+		var left_progress := _feet_offset_curve.get_horizontal_progress(_left_progress / _left_time, $FeetTracker.get_speed_ratio(), 0.0)
+		
+		var left_flat := _left_starting_point
+		left_flat.y = 0.0
+		var left_progress_flat := _left_target_position
+		left_progress_flat.y = 0.0
+		var left_flat_position = left_flat.linear_interpolate(left_progress_flat, left_progress)
+		left_flat_position.y = lerp(_left_starting_point.y, _left_target_position.y, _left_progress / _left_time)
+		left_flat_position.y += _feet_offset_curve.get_vertical_offset(_left_progress / _left_time, $FeetTracker.get_speed_ratio(), 0.0) / 3.0
+		_ik_target_left.target.origin = _ik_target_left.target.origin.linear_interpolate(left_flat_position, 50.0 * delta)
+		$LeftTarget2.global_transform.origin = left_flat_position
+	
 	_previous_position = global_transform.origin
 
 
 
 func _find_ik_position(world_target: Vector3) -> Vector3:
-	var dir := global_transform.origin - world_target
+	var dir := world_target - global_transform.origin
 	var flat_dir := Vector3(dir.x, 0.0, dir.z)
 	_caster.global_transform.origin = global_transform.origin
 	_caster.cast_to = flat_dir
@@ -123,7 +133,8 @@ func _find_ik_position(world_target: Vector3) -> Vector3:
 	else:
 		_caster.global_transform.origin = global_transform.origin + flat_dir
 	
-	_caster.cast_to = Vector3.DOWN * dir.y * 2.0
+#	_caster.cast_to = Vector3.DOWN * dir.y * 2.0
+	_caster.cast_to = Vector3.DOWN * 2.0
 	_caster.force_update_transform()
 	_caster.force_raycast_update()
 	if _caster.is_colliding():

@@ -2,9 +2,9 @@ extends Spatial
 
 enum TARGET_SIDE {LEFT, RIGHT}
 
-const MIN_ANGLE = 0.0
+const MIN_ANGLE = 0.1
 const MAX_ANGLE = 0.3
-const MAX_SPEED = 2.5
+const MAX_SPEED = 5.0
 const MIN_SPEED = 0.5
 const MIN_POS = 0.2
 
@@ -38,7 +38,7 @@ func should_unstick(position: Vector3) -> bool:
 func get_next_stick_point() -> Vector3:
 	if _velocity.length_squared() == 0.0:
 		return global_transform.origin + Vector3.DOWN
-	return global_transform.origin + (Vector3.DOWN.rotated(-Vector3.UP.cross(_velocity.normalized()), asin(_stick_zone_cos)) * LEG_LENGTH)
+	return global_transform.origin + (Vector3.DOWN.rotated(Vector3.UP.cross(_velocity.normalized()), asin(_stick_zone_cos)) * LEG_LENGTH)
 
 
 
@@ -53,12 +53,14 @@ func get_speed_ratio() -> float:
 
 
 func _is_in_stick_zone(direction: Vector3) -> bool:
+#	print(String(direction) + "    " + String(_stick_zone_cos) + "    " + String(Vector3.DOWN.dot(direction)) + "   " + String(Vector3.DOWN.dot(direction) > _stick_zone_cos) + "    " + String(_velocity.length()))
 	return Vector3.DOWN.dot(direction) > _stick_zone_cos
 
 
 
 func _update_stick_zone() -> void:
-	_stick_zone_cos = 1 - lerp(MIN_ANGLE, MAX_ANGLE, _velocity.length() / MAX_SPEED)
+#	print(clamp(lerp(MAX_ANGLE, MIN_ANGLE, _velocity.length() / MAX_SPEED), MIN_ANGLE, MAX_ANGLE))
+	_stick_zone_cos = 1.0 - clamp(lerp(MAX_ANGLE, MIN_ANGLE, _velocity.length() / MAX_SPEED), MIN_ANGLE, MAX_ANGLE)
 
 
 
@@ -71,8 +73,9 @@ func _update_interpolation_time() -> void:
 	var speed_ratio := clamp(velocity_length / MAX_SPEED, 0.0, 1.0)
 	# At min speed -> always one foot on ground (ratio of 1), At max speed -> no foot on floor
 	var on_ground_ratio: float = lerp(1.0, 0.0, speed_ratio)
-	var supposed_covered_distance = lerp(MIN_ANGLE, MAX_ANGLE, speed_ratio) * 2.0 * LEG_LENGTH
-	_interpolation_time = (supposed_covered_distance / velocity_length) * 2.0 * (1.0 - on_ground_ratio)
+	var supposed_covered_distance = lerp(MAX_ANGLE, MIN_ANGLE, speed_ratio) * 2.0 * LEG_LENGTH
+	_interpolation_time = (2.0 * supposed_covered_distance / velocity_length) * (1.0 - on_ground_ratio)
+	print(String(2.0 * supposed_covered_distance) + "   " + String(velocity_length) + "    " + String(1.0 - on_ground_ratio))
 
 
 

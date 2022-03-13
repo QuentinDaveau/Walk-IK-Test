@@ -13,6 +13,6 @@ func get_horizontal_progress(progress: float, speed_ratio: float, height_ratio: 
 
 
 
-func get_vertical_progress(progress: float, speed_ratio: float, height_ratio: float) -> float:
+func get_vertical_offset(progress: float, speed_ratio: float, height_ratio: float) -> float:
 	var ratio := max(speed_ratio, MIN_VERT_SPEED) * max(1.0 - height_ratio, 0.3)
-	return progress + sqrt(1 - pow(2.0 * progress - 1, 2.0)) * ratio
+	return sqrt(1 - pow(2.0 * progress - 1, 2.0)) * ratio

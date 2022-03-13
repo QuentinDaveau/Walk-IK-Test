@@ -20,6 +20,7 @@ radius = 0.1
 height = 0.2
 radial_segments = 16
 rings = 8
+is_hemisphere = true
 
 [sub_resource type="CubeMesh" id=4]
 size = Vector3( 0.1, 0.1, 0.1 )
