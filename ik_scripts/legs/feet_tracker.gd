@@ -12,6 +12,7 @@ const MIN_SPEED = 2.0
 
 var _previous_pos: Vector3
 var _velocity: Vector3
+var _previous_velocity: Vector3
 var _stick_zone_angle: float
 var _interpolation_time: float
 var _dist_to_ground: float
@@ -62,6 +63,11 @@ func get_velocity() -> Vector3:
 
 
 
+func just_started_moving() -> bool:
+	return _velocity.length_squared() > 0.0 and _previous_velocity.length_squared() <= 0.0
+
+
+
 func _is_in_stick_zone(direction: Vector3) -> bool:
 	return Vector3.DOWN.dot(direction) > cos(_stick_zone_angle / _air_ratio)
 
@@ -96,4 +102,5 @@ func _update_interpolation_time() -> void:
 func _get_velocity(delta: float) -> Vector3:
 	var velocity := (global_transform.origin - _previous_pos) / delta
 	_previous_pos = global_transform.origin
+	_previous_velocity = _velocity
 	return velocity

@@ -64,9 +64,10 @@ func _physics_process(delta: float) -> void:
 #	_right_world_target = _find_ik_position(_right_world_target, _right_target.global_transform, skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.get_bone_parent(skeleton.find_bone(_ik_target_right.tip_bone))))
 #	_left_world_target = _find_ik_position(_left_world_target, _left_target.global_transform, skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.get_bone_parent(skeleton.find_bone(_ik_target_left.tip_bone))))
 	
-	var should_refresh_right: bool = _right_moving and (_right_velocity - $FeetTracker.get_velocity()).length_squared() > 0.1
+	var should_refresh_right: bool = $FeetTracker.just_started_moving() or (_right_moving and (_right_velocity - $FeetTracker.get_velocity()).length_squared() > 0.1)
 	var should_refresh_left: bool = _left_moving and (_left_velocity - $FeetTracker.get_velocity()).length_squared() > 0.1
 	
+	print(should_refresh_right)
 	
 	_right_progress += delta
 	_left_progress += delta
@@ -80,11 +81,16 @@ func _physics_process(delta: float) -> void:
 	var left_ratio := 0.0 if not _left_moving else 1.0 - clamp(inverse_lerp(0.0, _left_time, _left_progress * 1.2), 0.0, 1.0)
 	var right_ratio := 0.0 if not _right_moving else 1.0 - clamp(inverse_lerp(0.0, _right_time, _right_progress * 1.2), 0.0, 1.0)
 	
+	var x_axis := Vector3.UP.cross($FeetTracker.get_velocity().normalized())
+	var velocity_basis := Basis(x_axis, x_axis.cross($FeetTracker.get_velocity().normalized()), $FeetTracker.get_velocity().normalized())
 	
 	if should_refresh_right or (not _right_moving and $FeetTracker.should_unstick(_right_target_position)):
 		_right_starting_point = _ik_target_right.target.origin
 		_right_target_position = $FeetTracker.get_next_stick_point(left_ratio if not should_refresh_right else - 1 + right_ratio)
-		_right_time = $FeetTracker.get_interpolation_time(0.0) + (left_ratio * _left_time if not should_refresh_right else 0.0)
+		
+		_right_target_position += velocity_basis * Vector3(-0.1, 0.0, 0.0)
+		
+		_right_time = max($FeetTracker.get_interpolation_time(0.0) + (left_ratio * _left_time if not should_refresh_right else 0.0), 0.2)
 		_right_progress = 0.0 if not should_refresh_right else (1.0 - right_ratio) * _right_time
 		if should_refresh_right:
 			print(right_ratio, "    ", _right_time, "   ", _right_progress)
@@ -99,7 +105,10 @@ func _physics_process(delta: float) -> void:
 		# Applying speed slowdown if the other leg is still moving, with a slight understimation of the left motion to ensure that it will always arrive a bit sooner
 		_left_starting_point = _ik_target_left.target.origin
 		_left_target_position = $FeetTracker.get_next_stick_point(right_ratio if not should_refresh_left else - 1 + left_ratio)
-		_left_time = $FeetTracker.get_interpolation_time(0.0) + (right_ratio * _right_time if not should_refresh_left else 0.0)
+		
+		_left_target_position += velocity_basis * Vector3(0.1, 0.0, 0.0)
+		
+		_left_time = max($FeetTracker.get_interpolation_time(0.0) + (right_ratio * _right_time if not should_refresh_left else 0.0), 0.2)
 		_left_progress = 0.0 if not should_refresh_left else (1.0 - left_ratio) * _left_time
 		_left_target_position = _find_ik_position(_left_target_position)
 		$LeftTarget.global_transform.origin = _left_target_position
