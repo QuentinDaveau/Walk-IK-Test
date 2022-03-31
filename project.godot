@@ -18,15 +18,27 @@ _global_script_classes=[ {
 "class": "IkJoint",
 "language": "GDScript",
 "path": "res://ik_scripts/ik/ik_joint.gd"
+}, {
+"base": "Reference",
+"class": "Raycaster",
+"language": "GDScript",
+"path": "res://raycaster.gd"
+}, {
+"base": "Resource",
+"class": "StickZoneUpdater",
+"language": "GDScript",
+"path": "res://ik_scripts/legs/stick_zone_updater.gd"
 } ]
 _global_script_class_icons={
 "FeetOffsetCurve": "",
-"IkJoint": ""
+"IkJoint": "",
+"Raycaster": "",
+"StickZoneUpdater": ""
 }
 
 [application]
 
-config/name="Walk Cycle Ik"
+config/name="Clean Walk Cycle Ik"
 run/main_scene="res://world/TestWorld.tscn"
 config/icon="res://icon.png"
 
