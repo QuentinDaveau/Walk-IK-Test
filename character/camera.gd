@@ -12,9 +12,9 @@ func _input(event: InputEvent) -> void:
 		if event.button_index == BUTTON_WHEEL_DOWN:
 			transform.origin += transform.basis.z.normalized()
 	
-	if Input.is_action_pressed("speed_reset"):
+	if Input.is_action_just_pressed("speed_reset"):
 		Engine.time_scale = 1.0
-	if Input.is_action_pressed("speed_up"):
+	if Input.is_action_just_pressed("speed_up"):
 		Engine.time_scale *= 2.0
-	if Input.is_action_pressed("speed_down"):
+	if Input.is_action_just_pressed("speed_down"):
 		Engine.time_scale /= 2.0

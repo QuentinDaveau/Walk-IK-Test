@@ -39,11 +39,8 @@ max_iterations = 5
 [node name="ProceduralLegsAnimator" type="Spatial" parent="ybot"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
 script = ExtResource( 3 )
-_max_leg_length = null
-_speed_step_dist_multiplier = null
 _ik_system_right_path = NodePath("../Skeleton/IkLegRight")
 _ik_system_left_path = NodePath("../Skeleton/IkLegLeft")
-_wheeler_path = null
 
 [node name="RayCast" type="RayCast" parent="ybot/ProceduralLegsAnimator"]
 enabled = true

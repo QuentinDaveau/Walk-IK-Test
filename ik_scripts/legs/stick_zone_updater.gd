@@ -7,8 +7,9 @@ var _stick_zone: StickZone
 
 
 
-func _init(world: World) -> void:
+func _init(start_transform: Transform, world: World) -> void:
 	_transform = TransformData.new()
+	_transform.update_data(start_transform, 0.1)
 	_stick_zone = StickZone.new(world)
 
 
@@ -27,16 +28,16 @@ func should_unstick(target_position: Vector3) -> bool:
 
 
 
-func get_next_stick_point(extra_multiplier: float = 0.0) -> Vector3:
+func get_next_stick_point(step_duration: float) -> Vector3:
 	if not _transform.is_moving():
 		return _transform.current.origin + Vector3.DOWN
-	var dist_to_reach := _stick_zone.interpolation_time * _transform.velocity.value * (1.0 + extra_multiplier)
+	var dist_to_reach := step_duration * _transform.velocity.value
 	return _transform.current.origin + _transform.velocity.normalized * (_stick_zone.dist_covered_by_step / _stick_zone.air_ratio) + dist_to_reach
 
 
 
 func get_interpolation_time(progress: float = 0.0) -> float:
-	return _stick_zone.interpolation_time * lerp(1.0, 0.0, progress)
+	return max(_stick_zone.interpolation_time * lerp(1.0, 0.0, progress), _stick_zone.MIN_INTERPOLATION_TIME)
 
 
 
@@ -50,8 +51,28 @@ func get_speed_ratio() -> float:
 
 
 
+func get_air_ratio() -> float:
+	return _stick_zone.air_ratio
+
+
+
 func get_velocity() -> Vector3:
 	return _transform.velocity.value
+
+
+
+func get_direction() -> Vector3:
+	return _transform.velocity.normalized
+
+
+
+func get_origin() -> Vector3:
+	return _transform.current.origin
+
+
+
+func get_ground() -> Vector3:
+	return _stick_zone.ground_position
 
 
 
@@ -65,16 +86,18 @@ func just_started_moving() -> bool:
 class StickZone:
 	
 	const MIN_ANGLE = 0.4 # in rads
-	const MAX_ANGLE = 0.45 # in rads
-	const MAX_SPEED = 4.0 # Speed at which we will reach the min angle
+	const MAX_ANGLE = 0.43 # in rads
+	const MAX_SPEED = 4.0 # Speed at which we will reach the max angle
 	const MIN_SPEED = 2.0
+	const MIN_INTERPOLATION_TIME = 0.2
 	
 	var stick_zone_angle: float
 	var stick_zone_dist: float
 	var dist_covered_by_step: float
 	var speed_ratio: float
-	var air_ratio: float
+	var air_ratio: float = 1.0
 	var interpolation_time: float
+	var ground_position: Vector3
 	
 	var _raycaster: Raycaster
 	
@@ -88,9 +111,15 @@ class StickZone:
 		var cast_data := _raycaster.get_collision_data(transform_data.current.origin, transform_data.current.origin + Vector3.DOWN)
 		var dist_to_ground = cast_data.collision_length() if cast_data.collides() else 1.0
 		
-		speed_ratio = inverse_lerp(0.0, MAX_SPEED, transform_data.velocity.length - MIN_SPEED)
-		stick_zone_angle = lerp(MIN_ANGLE, MAX_ANGLE, speed_ratio)
-		air_ratio = lerp(1.0, 2.0, speed_ratio)
+		ground_position = cast_data.collision_position() if cast_data.collides() else transform_data.current.origin + Vector3.DOWN
+		speed_ratio = inverse_lerp(0.0, MAX_SPEED, transform_data.velocity.length)
+		
+		
+		# We only want to change the stick_zone_angle and air_ratio once we are above a min speed
+		var limited_speed_ratio := inverse_lerp(MIN_SPEED, MAX_SPEED, transform_data.velocity.length)
+		stick_zone_angle = lerp(MIN_ANGLE, MAX_ANGLE, limited_speed_ratio)
+		# At MIN_SPEED: always one feet on ground (1.0), at max speed -> running: a feet is on ground only a small part of the time of the whole run cycle
+		air_ratio = lerp(1.0, 1.7, limited_speed_ratio)
 		stick_zone_dist = dist_to_ground * tan(stick_zone_angle) / air_ratio
 		dist_covered_by_step = dist_to_ground * tan(stick_zone_angle)
 		
@@ -98,7 +127,6 @@ class StickZone:
 			interpolation_time = 0.0
 		else:
 			interpolation_time = pow(air_ratio, 2.0) * 2.0 * (dist_covered_by_step / transform_data.velocity.length)
-
 
 
 
