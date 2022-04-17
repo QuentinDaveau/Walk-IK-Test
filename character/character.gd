@@ -1,7 +1,7 @@
 extends Spatial
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	var move_vector := Vector2.ZERO
 	if Input.is_action_pressed("ui_up"):
 		move_vector.y += 1.0

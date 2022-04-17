@@ -28,16 +28,18 @@ func should_unstick(target_position: Vector3) -> bool:
 
 
 
-func get_next_stick_point(step_duration: float) -> Vector3:
+func get_next_stick_point(step_duration: float, current_point: Vector3, target_amplitude: float = 1.0) -> Vector3:
 	if not _transform.is_moving():
 		return _transform.current.origin + Vector3.DOWN
 	var dist_to_reach := step_duration * _transform.velocity.value
-	return _transform.current.origin + _transform.velocity.normalized * (_stick_zone.dist_covered_by_step / _stick_zone.air_ratio) + dist_to_reach
+	var target_stick_point := _transform.current.origin + _transform.velocity.normalized * (_stick_zone.dist_covered_by_step / _stick_zone.air_ratio) + dist_to_reach
+	current_point.y = target_stick_point.y
+	return lerp(current_point + dist_to_reach, target_stick_point, target_amplitude)
 
 
 
-func get_interpolation_time(progress: float = 0.0) -> float:
-	return max(_stick_zone.interpolation_time * lerp(1.0, 0.0, progress), _stick_zone.MIN_INTERPOLATION_TIME)
+func get_interpolation_time(progress: float = 0.0, multiplier: float = 1.0) -> float:
+	return max(_stick_zone.interpolation_time * lerp(1.0, 0.0, progress), _stick_zone.MIN_INTERPOLATION_TIME) * multiplier
 
 
 
@@ -112,11 +114,10 @@ class StickZone:
 		var dist_to_ground = cast_data.collision_length() if cast_data.collides() else 1.0
 		
 		ground_position = cast_data.collision_position() if cast_data.collides() else transform_data.current.origin + Vector3.DOWN
-		speed_ratio = inverse_lerp(0.0, MAX_SPEED, transform_data.velocity.length)
-		
+		speed_ratio = clamp(inverse_lerp(0.0, MAX_SPEED, transform_data.velocity.length), 0.0, 1.0)
 		
 		# We only want to change the stick_zone_angle and air_ratio once we are above a min speed
-		var limited_speed_ratio := inverse_lerp(MIN_SPEED, MAX_SPEED, transform_data.velocity.length)
+		var limited_speed_ratio := clamp(inverse_lerp(MIN_SPEED, MAX_SPEED, transform_data.velocity.length), 0.0, 1.0)
 		stick_zone_angle = lerp(MIN_ANGLE, MAX_ANGLE, limited_speed_ratio)
 		# At MIN_SPEED: always one feet on ground (1.0), at max speed -> running: a feet is on ground only a small part of the time of the whole run cycle
 		air_ratio = lerp(1.0, 1.7, limited_speed_ratio)
