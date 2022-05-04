@@ -1,5 +1,7 @@
 extends Spatial
 
+var previous_input = Vector2.ZERO
+
 
 func _physics_process(delta: float) -> void:
 	var move_vector := Vector2.ZERO
@@ -23,6 +25,9 @@ func _physics_process(delta: float) -> void:
 		rotate += 1.0
 	if Input.is_action_pressed("ui_rotate_right"):
 		rotate -= 1.0
+	
+	move_vector = lerp(previous_input, move_vector, 0.1)
+	previous_input = move_vector
 	
 	global_translate(global_transform.basis.xform(Vector3(move_vector.x, 0.0, move_vector.y)) * 2.0 * delta)
 	global_rotate(Vector3.UP, rotate * (PI / 2.0) * delta)

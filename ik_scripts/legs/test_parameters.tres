@@ -1,0 +1,17 @@
+[gd_resource type="Resource" load_steps=4 format=2]
+
+[ext_resource path="res://ik_scripts/legs/movement_parameters.gd" type="Script" id=1]
+
+[sub_resource type="Curve" id=1]
+max_value = 2.0
+_data = [ Vector2( 0, 0.581818 ), 0.0, 0.52562, 0, 0, Vector2( 0.443396, 0.945454 ), 1.3942, 0.0, 0, 0, Vector2( 0.542453, 0.945454 ), 0.0, 4.21591, 0, 0, Vector2( 1, 1.63636 ), -0.0713804, 0.0, 0, 0 ]
+
+[sub_resource type="Curve" id=2]
+_data = [ Vector2( 0, 0.109091 ), 0.0, 3.30389, 0, 0, Vector2( 0.363208, 0.5 ), 0.0401515, -0.0332288, 0, 0, Vector2( 0.566038, 0.5 ), 0.0, -0.84612, 0, 0, Vector2( 1, 0.318182 ), -0.137661, 0.0, 0, 0 ]
+
+[resource]
+script = ExtResource( 1 )
+_stick_zone_angle_from_speed = SubResource( 2 )
+_stick_zone_safe_margin = 0.05
+_air_ratio_from_speed = SubResource( 1 )
+_max_speed = 4.0

@@ -34,7 +34,7 @@ class CollisionData:
 	func _init(from: Vector3, to: Vector3, collision_dict: Dictionary) -> void:
 		_collision_dict = collision_dict
 		_from = from
-		_to = _to
+		_to = to
 	
 	
 	func collides() -> bool:

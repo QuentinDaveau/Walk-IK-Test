@@ -1,31 +1,23 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://model/ybot.dae" type="PackedScene" id=1]
 [ext_resource path="res://character/character.gd" type="Script" id=2]
 [ext_resource path="res://ik_scripts/legs/procedural_legs_animator.gd" type="Script" id=3]
+[ext_resource path="res://ik_scripts/legs/test_parameters.tres" type="Resource" id=4]
 [ext_resource path="res://character/camera.gd" type="Script" id=5]
-
-[sub_resource type="SphereMesh" id=3]
-radius = 0.1
-height = 0.2
-radial_segments = 16
-rings = 8
-is_hemisphere = true
-
-[sub_resource type="CubeMesh" id=4]
-size = Vector3( 0.1, 0.1, 0.1 )
 
 [node name="Character" type="Spatial"]
 script = ExtResource( 2 )
 
 [node name="ybot" parent="." instance=ExtResource( 1 )]
+transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0 )
 
 [node name="IkLegRight" type="SkeletonIK" parent="ybot/Skeleton" index="2"]
 process_priority = 1
 root_bone = "mixamorig_RightUpLeg"
 tip_bone = "mixamorig_RightFoot"
 use_magnet = true
-magnet = Vector3( 0, 1, 1 )
+magnet = Vector3( 0.1, 1, 1 )
 max_iterations = 5
 
 [node name="IkLegLeft" type="SkeletonIK" parent="ybot/Skeleton" index="3"]
@@ -33,34 +25,15 @@ process_priority = 1
 root_bone = "mixamorig_LeftUpLeg"
 tip_bone = "mixamorig_LeftFoot"
 use_magnet = true
-magnet = Vector3( 0, 1, 1 )
+magnet = Vector3( -0.1, 1, 1 )
 max_iterations = 5
 
 [node name="ProceduralLegsAnimator" type="Spatial" parent="ybot"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0 )
 script = ExtResource( 3 )
 _ik_system_right_path = NodePath("../Skeleton/IkLegRight")
 _ik_system_left_path = NodePath("../Skeleton/IkLegLeft")
-
-[node name="RayCast" type="RayCast" parent="ybot/ProceduralLegsAnimator"]
-enabled = true
-collision_mask = 15
-
-[node name="RightTarget" type="MeshInstance" parent="ybot/ProceduralLegsAnimator"]
-mesh = SubResource( 3 )
-material/0 = null
-
-[node name="LeftTarget" type="MeshInstance" parent="ybot/ProceduralLegsAnimator"]
-mesh = SubResource( 3 )
-material/0 = null
-
-[node name="RightTarget2" type="MeshInstance" parent="ybot/ProceduralLegsAnimator"]
-mesh = SubResource( 4 )
-material/0 = null
-
-[node name="LeftTarget2" type="MeshInstance" parent="ybot/ProceduralLegsAnimator"]
-mesh = SubResource( 4 )
-material/0 = null
+_movement_parameters = ExtResource( 4 )
 
 [node name="Camera" type="Camera" parent="."]
 transform = Transform( 0.707107, -0.187003, 0.681931, 0, 0.964396, 0.264462, -0.707107, -0.187003, 0.681931, 3.51654, 2.29462, 3.74406 )
