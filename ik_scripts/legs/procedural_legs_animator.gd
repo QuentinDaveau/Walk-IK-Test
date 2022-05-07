@@ -35,42 +35,6 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_stick_zone_updater.update(global_transform, delta)
 	
-	# 0 = right, 1 = left
-	var force_update := [LegIkAnimator.ForceState.None, LegIkAnimator.ForceState.None]
-	
-	# If we just started to move, we need to force-update one of the two legs (the one most behind the direction
-	if _stick_zone_updater.just_started_moving():
-		var forward := _stick_zone_updater.get_direction()
-		if forward.dot(_right_leg.get_feet_offset()) < forward.dot(_left_leg.get_feet_offset()):
-			force_update[0] = LegIkAnimator.ForceState.Full
-		else:
-			force_update[1] = LegIkAnimator.ForceState.Full
-#
-#	# If we just stopped moving, we reset the legs position starting from the furthest one
-#	if _stick_zone_updater.just_stopped_moving():
-#		force_update[0] = LegIkAnimator.ForceState.Full
-#		force_update[1] = LegIkAnimator.ForceState.Full
-#	else:
-#		# Force update if velocity changed too much (either in length or direction)
-#		if _right_leg.should_refresh_from_velocity():
-#			force_update[0] = LegIkAnimator.ForceState.Short
-#		if _left_leg.should_refresh_from_velocity():
-#			force_update[1] = LegIkAnimator.ForceState.Short
-#
-#		# If we force update both legs, one needs to be a long update (the least progressed one)
-#		if force_update[0] and force_update[1]:
-#			if _right_leg.get_progress_ratio() < _left_leg.get_progress_ratio():
-#				force_update[0] = LegIkAnimator.ForceState.Full
-#			else:
-#				force_update[1] = LegIkAnimator.ForceState.Full
-	
-	# Unstick if necessary
-#	if force_update[0] or _right_leg.should_unstick():
-#		_right_leg.unstick(force_update[0])
-#
-#	if force_update[1] or _left_leg.should_unstick():
-#		_left_leg.unstick(force_update[1])
-	
 	if _right_leg._state == LegIkAnimator.LegState.Moving:
 		_right_leg.update(delta, global_transform.basis)
 		_left_leg.update(delta, global_transform.basis)
@@ -85,7 +49,6 @@ func _physics_process(delta: float) -> void:
 class LegIkAnimator:
 	
 	enum LegState {Stick, Moving}
-	enum ForceState {None, Full, Short}
 	
 	var _caster: Raycaster
 	var _ik_target: SkeletonIK
@@ -97,12 +60,10 @@ class LegIkAnimator:
 	var _starting_point: Vector3
 	var _end_point: Vector3
 	var _height_diff_ratio: float
+	var _true_position_offset: Vector3
 	
 	var _progress_ratio: float
 	var _movement_time: float
-	var _initial_movement_time: float
-	var _full_movement_ratio: float = 1.0
-	var _movement_corresponding_velocity: Vector3
 	
 	
 	func _init(ik_target: SkeletonIK, stick_zone: StickZoneUpdater, position_offset: Vector3, world: World) -> void:
@@ -110,6 +71,7 @@ class LegIkAnimator:
 		_ik_target.start()
 		_stick_zone = stick_zone
 		_position_offset = position_offset
+		_true_position_offset = _position_offset
 		_caster = Raycaster.new(world)
 	
 	
@@ -124,96 +86,65 @@ class LegIkAnimator:
 		
 		match _state:
 			LegState.Stick:
-				DebugOverlay.draw_sphere(_stick_zone.get_ground() + _stick_zone.get_forward() * -_position_offset, _stick_zone.get_dist(), Color.orange)
-				if should_unstick():
-					unstick()
+				if _should_unstick():
+					_update_true_offset(body_forward)
+					_unstick()
 			LegState.Moving:
-				# Very messy
-#				_progress_ratio = min(_progress_ratio + (delta * 1.1 * max(1.0 / max(_initial_movement_time, 0.1), max(_initial_movement_time / max(_movement_time * _progress_ratio, 1.0), 1.0))), 1.0)
-#				_progress_ratio = min(_progress_ratio + (delta * 1.0 * max(1.0 / max(_initial_movement_time, 0.1), max(_initial_movement_time / max(_movement_time * _progress_ratio, 1.0), 1.0))), 1.0)
-#				_progress_ratio = _progress_ratio + (delta * max(1.0 / max(_initial_movement_time, 0.05), _movement_time * (1.0 - _progress_ratio)))
-				
+				_update_true_offset(body_forward)
 				_compute_movement()
-				
-				
-				
-				
-#				if _initial_movement_time * (1.0 - _progress_ratio) < _movement_time:
-#					# IMPORTANT: The glitch comes from here:
-#					# the target point has an offset to anticipate the movement velocity,
-#					# offset calculated using the _movement_time, and not the _initial_movement_time.
-#					# So if we use the _initial_movement_time, we reach the point too fast, and since it has
-#					# an offset, we are out of the stick zone
-#					_progress_ratio += delta / max(_initial_movement_time, 0.01)
-#				else:
-				_progress_ratio += delta * (1.0 - _progress_ratio) / max(_movement_time, 0.01)
-				
+				_progress_ratio = min(_progress_ratio + (delta * (1.0 - _progress_ratio) / max(_movement_time, 0.01)), 1.0)
 				_update_movement(body_forward)
 				
 				if _progress_ratio >= 0.99:
 					_state = LegState.Stick
 					_progress_ratio = 0.0
 					_movement_time = 0.0
-					_initial_movement_time = 0.0
-#				print(_progress_ratio, "     ", _movement_time, "    ", _initial_movement_time)
-				
-#				print(_progress_ratio, "    ", 1.0 / max(_initial_movement_time, 0.1), "    ", _movement_time * (1.0 - _progress_ratio), "     ", 1.0 / max(_initial_movement_time, 0.1) > _movement_time * (1.0 - _progress_ratio))
-				
 	
 	
 	
-	func unstick(forced: int = ForceState.None) -> void:
+	func get_time_to_edge() -> float:
+		return _stick_zone.get_time_to_reach_edge(_ik_target.target.origin, _true_position_offset)
+	
+	
+	
+	func is_sticking() -> bool:
+		return _state == LegState.Stick
+	
+	
+	
+	func _update_true_offset(body_forward: Basis) -> void:
+		if _stick_zone.get_speed() < 0.2:
+			_true_position_offset = body_forward * -_position_offset
+			return
+		var mouvement := _stick_zone.get_direction()
+		var angle_diff := body_forward.z.signed_angle_to(mouvement, Vector3.UP)
+		_true_position_offset = _position_offset.rotated(Vector3.UP, angle_diff) * sign(body_forward.z.dot(mouvement))
+	
+	
+	
+	func _unstick() -> void:
 		_compute_movement(true)
 		_progress_ratio = 0.0
 		_state = LegState.Moving
 	
 	
 	
-	func should_refresh_from_velocity() -> bool:
-		return _state == LegState.Moving and (_movement_corresponding_velocity - _stick_zone.get_velocity()).length_squared() > 0.5
-	
-	
-	
-	func get_feet_offset() -> Vector3:
-		return _stick_zone.get_ground().direction_to(_ik_target.target.origin)
-	
-	
-	
-	func get_corresponding_velocity() -> Vector3:
-		return _movement_corresponding_velocity
-	
-	
-	
-	func get_progress_ratio() -> float:
-		return _progress_ratio
-	
-	
-	
-	func get_movement_time() -> float:
-		return _movement_time
-	
-	
-	
-	func should_unstick() -> bool:
+	func _should_unstick() -> bool:
 		# Unstick if we are moving and both legs will have to unstick almost at the same time
-		if _stick_zone.get_speed() > 0.2 and _other._state == LegState.Stick:
-			if abs(_stick_zone.get_time_to_reach_edge(_other._ik_target.target.origin, _other._position_offset) - _stick_zone.get_time_to_reach_edge(_ik_target.target.origin, _position_offset)) < 0.1:
-				return true
-		
-		return _state == LegState.Stick and _stick_zone.should_unstick(_ik_target.target.origin, _position_offset)
+		if (_stick_zone.get_speed() > 0.2 and _other.is_sticking()) and abs(_other.get_time_to_edge() - get_time_to_edge()) < 0.1:
+			return true                                                                             
+		return _state == LegState.Stick and _stick_zone.should_unstick(_ik_target.target.origin, -_true_position_offset)
 	
 	
 	
 	func _update_movement(body_forward: Basis) -> void:
-		
-		# X with offset: TODO: Reduce offset if we have a very quick movement to do (mix of offset + multiplier ?)
 		var new_position := _starting_point.linear_interpolate(_end_point, _progress_ratio)
-		new_position += _starting_point.direction_to(_end_point) * FeetOffsetCurve.get_horizontal_offset(_progress_ratio, _stick_zone.get_speed_ratio() * _full_movement_ratio, _height_diff_ratio)
+		new_position += _starting_point.direction_to(_end_point) * FeetOffsetCurve.get_horizontal_offset(_progress_ratio, _stick_zone.get_speed_ratio(), _height_diff_ratio)
 		
 		# Y progress -> offset
 		new_position.y = lerp(_starting_point.y, _end_point.y, _progress_ratio)
 		# TODO: Set the offfset divider in a const somewhere
-		new_position.y += FeetOffsetCurve.get_vertical_offset(_progress_ratio, _stick_zone.get_speed_ratio() * _full_movement_ratio, _height_diff_ratio)
+		new_position.y += FeetOffsetCurve.get_vertical_offset(_progress_ratio, _stick_zone.get_speed_ratio(), _height_diff_ratio)
 		
 		# TEMP ? No lerp for smoothing for now, may not be required
 		_ik_target.target.origin = new_position
@@ -222,87 +153,41 @@ class LegIkAnimator:
 	
 	
 	func _compute_movement(first: bool = false) -> void:
-		var target_time: float
 		var air_ratio_to_ground := (1.0 / (1.0 - (_stick_zone.get_air_ratio() / 2.0))) - 1.0
 		var desired_air_time := _stick_zone.get_traversal_time() * air_ratio_to_ground
 		
 		match _other._state:
 			LegState.Stick:
-				target_time = _stick_zone.get_time_to_reach_edge(_other._ik_target.target.origin, _other._position_offset)
-				
+				var target_time := _other.get_time_to_edge()
 				
 				# If we will take too much time to reach the target_time, we cap it
 				if target_time == INF:
 					target_time = 0.4 * (1.0 - _progress_ratio)
 				
-#				var relative_progression := -((_stick_zone.get_traversal_time() / 2.0) - target_time) / (_stick_zone.get_traversal_time() / 2.0)
-				var relative_progression := -(target_time - _stick_zone.get_traversal_time()) / _stick_zone.get_traversal_time()
-				var relative_progress_from_half = 0.5 - relative_progression
-				target_time = desired_air_time - (0.5 * desired_air_time - relative_progress_from_half * _stick_zone.get_traversal_time())
-#				target_time = desired_air_time * (1.0 - relative_progression)
-				print(target_time, "     ", _movement_time, "    ", relative_progression, "     ", relative_progress_from_half)
-				
-				
-				# air ratio offset
-#				target_time += _stick_zone.get_traversal_time() * (_stick_zone.get_air_ratio() - 1.0)
-#				target_time *= _stick_zone.get_air_ratio()
-				
+				var relative_progression := 0.5 + ((target_time - _stick_zone.get_traversal_time()) / _stick_zone.get_traversal_time())
+				target_time = desired_air_time - (0.5 * desired_air_time - relative_progression * _stick_zone.get_traversal_time())
+			
 				if first or target_time < _movement_time:
 					_movement_time = target_time
+			
 			LegState.Moving:
-				# If the other leg is still in the air, smallest time possible
-				_movement_time = max(_other._movement_time * (1.0 - _other._progress_ratio) - _stick_zone.get_traversal_time(), 0.2) * (1.0 - _progress_ratio)
-				
-				# Test run
-				
 				if _other._progress_ratio < 0.5:
 					_movement_time = max(((0.5 - _other._progress_ratio) * desired_air_time) - (0.5 * _stick_zone.get_traversal_time()), 0.0)
 				else:
-					_movement_time = min(((1.5 - _other._progress_ratio) * desired_air_time) + (0.5 * _stick_zone.get_traversal_time()), desired_air_time)
-				
-#				_movement_time = max(((0.5 - _other._progress_ratio) * desired_air_time) - (0.5 * _stick_zone.get_traversal_time()), 0.0)
-				
-				
-#				_movement_time = _stick_zone.apply_air_ratio_offset(_movement_time)
-				
-#				var target_ratio: float = lerp(0.5, 1.0, inverse_lerp(2.0, 1.0, _stick_zone.get_air_ratio()))
-#				_movement_time = min(_stick_zone.get_traversal_time() + (_other._movement_time * target_ratio), 1.0)
-#				print(_movement_time)
-		
-#		print(target_time < _movement_time * _progress_ratio)
-#
-#		if first or target_time < _movement_time * _progress_ratio:
+					_movement_time = min((min(1.5 - _other._progress_ratio, 1.0) * desired_air_time) + (0.5 * _stick_zone.get_traversal_time()), desired_air_time)
 		
 		if first:
-			_initial_movement_time = _movement_time
 			_starting_point = _ik_target.target.origin
 		
-		
-		var target_lerp := 1.0
-#		match forced:
-#			ForceState.None:
-#				var target_ratio: float = lerp(0.5, 1.0, inverse_lerp(2.0, 1.0, _stick_zone.get_air_ratio()))
-#				_movement_time = _stick_zone.get_interpolation_time(_progress_ratio)
-#				_movement_time += other_time * (target_ratio - other_ratio)
-#				_full_movement_ratio = 1.0
-#			ForceState.Full:
-#				_movement_time = _stick_zone.get_interpolation_time(_progress_ratio)
-#				_full_movement_ratio = 1.0
-#			ForceState.Short:
-#				_full_movement_ratio = clamp(1.0 - _progress_ratio, 0.1, 0.5)
-#				target_lerp = _full_movement_ratio
-#				_movement_time = _stick_zone.get_interpolation_time(_progress_ratio, _full_movement_ratio)
-		
-		_end_point = _find_true_position(_stick_zone.get_next_stick_point(_movement_time, _starting_point, target_lerp))
-		_end_point += _stick_zone.get_forward() * -_position_offset
+		_end_point = _find_true_position(_stick_zone.get_next_stick_point(_movement_time) + _true_position_offset)
 		
 		# TODO: Get the max length from somewhere
 		_height_diff_ratio = inverse_lerp(0.0, 1.0, abs(_starting_point.y - _end_point.y))
-		_movement_corresponding_velocity = _stick_zone.get_velocity()
 	
 	
 	
 	func _find_true_position(world_target: Vector3) -> Vector3:
+		DebugOverlay.draw_line(world_target, _stick_zone.get_origin(), 1.0, Color.blue)
 		var first_origin := _stick_zone.get_origin()
 		var flat_target := Vector3(world_target.x, first_origin.y, world_target.z)
 		

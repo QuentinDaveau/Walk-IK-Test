@@ -12,6 +12,6 @@ _data = [ Vector2( 0, 0.109091 ), 0.0, 3.30389, 0, 0, Vector2( 0.363208, 0.5 ), 
 [resource]
 script = ExtResource( 1 )
 _stick_zone_angle_from_speed = SubResource( 2 )
-_stick_zone_safe_margin = 0.05
+_stick_zone_safe_margin = 0.1
 _air_ratio_from_speed = SubResource( 1 )
 _max_speed = 4.0
