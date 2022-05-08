@@ -17,7 +17,7 @@ process_priority = 1
 root_bone = "mixamorig_RightUpLeg"
 tip_bone = "mixamorig_RightFoot"
 use_magnet = true
-magnet = Vector3( 0.1, 1, 1 )
+magnet = Vector3( -0.2, 1, 1 )
 max_iterations = 5
 
 [node name="IkLegLeft" type="SkeletonIK" parent="ybot/Skeleton" index="3"]
@@ -25,7 +25,7 @@ process_priority = 1
 root_bone = "mixamorig_LeftUpLeg"
 tip_bone = "mixamorig_LeftFoot"
 use_magnet = true
-magnet = Vector3( -0.1, 1, 1 )
+magnet = Vector3( 0.2, 1, 1 )
 max_iterations = 5
 
 [node name="ProceduralLegsAnimator" type="Spatial" parent="ybot"]

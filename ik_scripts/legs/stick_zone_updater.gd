@@ -24,7 +24,7 @@ func update(new_transform: Transform, delta: float) -> void:
 
 
 func should_unstick(target_position: Vector3, origin_offset: Vector3) -> bool:
-	DebugOverlay.draw_sphere(_stick_zone.ground_position + origin_offset, _stick_zone.stick_zone_dist, Color.orange)
+	DebugOverlay.draw_sphere(_stick_zone.ground_position - origin_offset, _stick_zone.stick_zone_dist, Color.orange)
 	var point := _transform.current.origin + Vector3.DOWN * Vector3.DOWN.dot(target_position - _transform.current.origin)
 	return point.distance_to(target_position + origin_offset) > _stick_zone.stick_zone_dist
 
@@ -35,7 +35,7 @@ func get_next_stick_point(step_duration: float) -> Vector3:
 	var dist_to_reach := step_duration * _transform.velocity.value
 	target_stick_point = _transform.current.origin + _transform.velocity.normalized * _stick_zone.dist_covered_by_step + dist_to_reach
 	# Add safe margin
-	target_stick_point -= _transform.velocity.normalized * min(_stick_zone._movement_parameters._stick_zone_safe_margin, _stick_zone.stick_zone_dist * 0.5)
+	target_stick_point -= _transform.velocity.normalized * min(_stick_zone._movement_parameters._stick_zone_safe_margin, _stick_zone.stick_zone_dist * 0.4)
 	return target_stick_point
 
 
@@ -63,7 +63,9 @@ func get_origin() -> Vector3:
 func get_traversal_time() -> float:
 	if not _transform.velocity.length:
 		return 1.0
-	return min(_stick_zone.stick_zone_dist * 2.0 / _transform.velocity.length, 1.0)
+	var traversal_dist := _stick_zone.stick_zone_dist * 2.0
+	traversal_dist -= min(_stick_zone._movement_parameters._stick_zone_safe_margin, _stick_zone.stick_zone_dist * 0.4)
+	return min(traversal_dist / _transform.velocity.length, 1.0)
 
 
 

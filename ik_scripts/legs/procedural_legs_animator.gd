@@ -113,12 +113,13 @@ class LegIkAnimator:
 	
 	
 	func _update_true_offset(body_forward: Basis) -> void:
+		_true_position_offset = body_forward * -_position_offset
 		if _stick_zone.get_speed() < 0.2:
-			_true_position_offset = body_forward * -_position_offset
 			return
 		var mouvement := _stick_zone.get_direction()
 		var angle_diff := body_forward.z.signed_angle_to(mouvement, Vector3.UP)
-		_true_position_offset = _position_offset.rotated(Vector3.UP, angle_diff) * sign(body_forward.z.dot(mouvement))
+		var dot := body_forward.z.dot(mouvement)
+		_true_position_offset += _position_offset.rotated(Vector3.UP, angle_diff) * ((1.0 - abs(dot)) * sign(dot))
 	
 	
 	
